@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Presupuesto Odontológico</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+body { font-family: Arial, sans-serif; background:#f4f7fb; padding:20px;}
+.box { background:white; padding:18px; border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,.06);}
+#contenidoPDF { background:white; padding:25px; margin-top:20px; border-radius:6px; width:794px; margin:auto;}
+table { width:100%; border-collapse:collapse;}
+th, td { border:1px solid #595959; padding:8px; text-align:left;}
+th { background:#B7E1F2; font-weight:bold;}
+.text-right {text-align:right;}
+.firma-container {display:flex;justify-content:space-between;margin-top:40px;}
+.firma {text-align:center;flex:1;}
+.firma span {display:block;margin-top:5px;}
+
+
+
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="box">
+    <h3 class="mb-3">Formulario de Presupuesto</h3>
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <label>Nombre del paciente:</label>
+        <input type="text" class="form-control" id="nombrePaciente" required />
+      </div>
+      <div class="col-md-4">
+        <label>Tipo de Documento:</label>
+        <select class="form-select" id="tipoDocumento" required>
+                  <option value="">Seleccionar</option>
+                  <option value="CC">Cédula de ciudadanía</option>
+                  <option value="CE">Cédula de extranjería</option>
+                  <option value="PA">Pasaporte</option>
+                  <option value="TI">Tarjeta de identidad</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label>Número del documento:</label>
+        <input type="text" class="form-control" id="numeroDocumento" required />
+      </div>
+    </div>
+    <div class="mb-3 d-flex gap-2">
+      <input type="text" id="nombreProcedimiento" class="form-control" placeholder="Procedimiento" readonly>
+
+      <input type="number" id="cantidadProcedimiento" class="form-control" min="1" value="1" readonly>
+      <input type="number" id="valorProcedimiento" class="form-control" min="0" value="0" readonly>
+
+
+
+      <button id="btnAgregar" class="btn btn-success">Agregar</button>
+    </div>
+    <div id="listadoForm"></div>
+    <div class="mt-3 d-flex justify-content-between">
+      <strong>Total general: <span id="totalGeneralSpan">$0</span></strong>
+      <button id="btnGenerarPDF" class="btn btn-primary">Generar PDF</button>
+    </div>
+  </div>
+
+  <br>
+
+  <div id="contenidoPDF" class="box">
+    <!-- Logo centrado -->
+<div class="text-center mb-3"> 
+  <img src="logo.png" alt="Logo" style="max-width: 450px;"> 
+</div>
+
+    <p><strong>Fecha:</strong> <span id="pdfFecha"></span></p>
+    <p>Cartagena-Bolívar</p>
+    <p><strong>Paciente:</strong> <span id="pdfNombrePaciente"></span> <strong>Tipo:</strong> <span id="pdfTipoDocumento"></span> <strong>#:</strong> <span id="pdfNumeroDocumento"></span></p>
+
+    <h5 class="mt-4">PLAN DE TRATAMIENTO Y PRESUPUESTO</h5>
+    <table>
+      <thead>
+        <tr><th>PROCEDIMIENTO</th><th>CANTIDAD</th><th>VALOR UNITARIO</th><th>TOTAL</th></tr>
+      </thead>
+      <tbody id="pdfTableBody"></tbody>
+      <tfoot>
+        <tr><td colspan="3" class="text-right"><strong>Total:</strong></td><td id="pdfTotalGeneral">$0</td></tr>
+      </tfoot>
+    </table>
+
+    <p class="mt-3">El presupuesto está entendido, revisado y aprobado por las partes.</p>
+    <p>Presupuesto válido por 45 días.</p>
+
+    <div class="firma-container">
+      <div class="firma">
+        _________________________
+        <span>Firma del paciente</span>
+      </div>
+      <div class="firma">
+        _________________________
+        <span>Firma del odontólogo</span>
+      </div>
+    </div>  
+
+    <p class="text-center mt-3" style="font-size:12px;">
+  <a href="mailto:rodrigorodeloc@gmail.com">rodrigorodeloc@gmail.com</a>
+  </p>
+    <p class="text-center mt-3" style="font-size:12px;">Celular +57 3012509226 - +57 3011273406</p> 
+    <p class="text-center mt-3" style="font-size:12px;">Centro Av Venezuela Edif Citibank / Piso 4 consultorio 4A / Cartagena - Colombia</p> 
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+const fmt=n=>new Intl.NumberFormat('es-CO',{maximumFractionDigits:0}).format(n);
+let procedures=[];
+function recalcTotals(){
+  let total=0;
+  procedures.forEach(p=>{p.total=p.cantidad*p.valor;total+=p.total;});
+  totalGeneralSpan.textContent='$'+fmt(total);
+  pdfTotalGeneral.textContent='$'+fmt(total);
+}
+function renderFormList(){
+  listadoForm.innerHTML='';
+  procedures.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='row mb-2 g-2';
+    row.innerHTML=`<div class="col-md-5"><input class="form-control nombre-input" value="${p.nombre}"></div>
+      <div class="col-md-2"><input type="number" class="form-control cantidad-input" value="${p.cantidad}"></div>
+      <div class="col-md-3"><input type="number" class="form-control valor-input" value="${p.valor}"></div>
+      <div class="col-md-1"><input class="form-control" readonly value="${fmt(p.total)}"></div>
+      <div class="col-md-1"><button class="btn btn-danger btn-sm">X</button></div>`;
+    listadoForm.appendChild(row);
+    row.querySelector('.nombre-input').oninput=e=>{p.nombre=e.target.value;renderPreview();};
+    row.querySelector('.cantidad-input').oninput=e=>{p.cantidad=+e.target.value||1;recalcTotals();renderPreview();};
+    row.querySelector('.valor-input').oninput=e=>{p.valor=+e.target.value||0;recalcTotals();renderPreview();};
+    row.querySelector('.btn-danger').onclick=()=>{procedures=procedures.filter(x=>x!==p);recalcTotals();renderFormList();renderPreview();};
+  });
+}
+function renderPreview(){
+  pdfFecha.textContent=new Date().toLocaleDateString('es-CO');
+  pdfNombrePaciente.textContent=nombrePaciente.value;
+  pdfTipoDocumento.textContent=tipoDocumento.options[tipoDocumento.selectedIndex].text;
+  pdfNumeroDocumento.textContent=numeroDocumento.value;
+  pdfTableBody.innerHTML='';
+  procedures.forEach(p=>{
+    pdfTableBody.innerHTML+=`<tr><td>${p.nombre}</td><td>${p.cantidad}</td><td>$${fmt(p.valor)}</td><td>$${fmt(p.total)}</td></tr>`;
+  });
+}
+btnAgregar.onclick=()=>{
+  procedures.push({nombre:nombreProcedimiento.value||'Procedimiento',cantidad:+cantidadProcedimiento.value||1,valor:+valorProcedimiento.value||0,total:0});
+  recalcTotals();renderFormList();renderPreview();
+  nombreProcedimiento.value='';cantidadProcedimiento.value=1;valorProcedimiento.value=0;
+};
+['nombrePaciente','tipoDocumento','numeroDocumento'].forEach(id=>{
+  document.getElementById(id).oninput=renderPreview;
+  document.getElementById(id).onchange=renderPreview;
+});
+btnGenerarPDF.onclick=async()=>{
+  recalcTotals();renderPreview();
+  const canvas=await html2canvas(contenidoPDF,{scale:2,useCORS:true});
+  const imgData=canvas.toDataURL('image/png');
+  const {jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');
+  const w=pdf.internal.pageSize.getWidth();
+  const h=(canvas.height* w)/canvas.width;
+  pdf.addImage(imgData,'PNG',0,0,w,h);pdf.save('presupuesto.pdf');
+};
+(function init(){procedures.push({nombre:'Limpieza dental',cantidad:1,valor:50000,total:50000});recalcTotals();renderFormList();renderPreview();})();
+</script>
+</body>
+</html>
